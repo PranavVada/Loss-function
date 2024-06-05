@@ -1,0 +1,33 @@
+import torch
+import torch.nn.functional as F
+import cv2
+
+# Load original and similar images
+original_image = cv2.imread('original_image.jpg')
+similar_image = cv2.imread('similar_image.jpg')
+
+# Resize the similar image to a reduced size
+reduced_size_image = cv2.resize(similar_image, (similar_image.shape[1] // 2, similar_image.shape[0] // 2))
+
+# Convert images to tensors
+original_image_tensor = torch.from_numpy(cv2.cvtColor(original_image, cv2.COLOR_BGR2GRAY)).float()
+reduced_size_image_tensor = torch.from_numpy(cv2.cvtColor(reduced_size_image, cv2.COLOR_BGR2GRAY)).float()
+
+# Normalize pixel values to [0, 1]
+original_image_tensor /= 255.0
+reduced_size_image_tensor /= 255.0
+
+# Initialize SIFT detector
+sift = cv2.SIFT_create()
+
+# Find keypoints and descriptors
+keypoints_original, descriptors_original = sift.detectAndCompute(original_image, None)
+keypoints_reduced, descriptors_reduced = sift.detectAndCompute(reduced_size_image, None)
+
+# Convert keypoints to tensors
+keypoints_original_tensor = torch.tensor([(kp.pt[0], kp.pt[1]) for kp in keypoints_original], dtype=torch.float32)
+keypoints_reduced_tensor = torch.tensor([(kp.pt[0], kp.pt[1]) for kp in keypoints_reduced], dtype=torch.float32)
+
+# Compute loss between keypoints in original and reduced-size images
+loss = F.mse_loss(keypoints_original_tensor, keypoints_reduced_tensor)
+print("Mean Squared Error Loss between keypoints in original and reduced-size images:", loss.item())
